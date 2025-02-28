@@ -14,6 +14,7 @@ public class OWSHubWorldMMO : ModuleRules
 			"NetCore",
 			"Engine",
             "GameplayAbilities",
+            "EnhancedInput",
             "GameplayTags",
             "GameplayTasks",
 			"AIModule"
@@ -21,7 +22,6 @@ public class OWSHubWorldMMO : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[] {
             "InputCore",
-            "EnhancedInput",
             "Json",
 			"JsonUtilities",
 			"HTTP",

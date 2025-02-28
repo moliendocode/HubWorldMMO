@@ -9,6 +9,7 @@
 #include "InputCoreTypes.h"
 #include "UObject/NameTypes.h"
 #include "UObject/UnrealNames.h"
+#include "EnhancedInput/Public/InputAction.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(HWInputComponent)
 
@@ -20,49 +21,51 @@ UHWInputComponent::UHWInputComponent(const FObjectInitializer& ObjectInitializer
 
 void UHWInputComponent::AddInputMappings(const UHWInputConfig* InputConfig, UEnhancedInputLocalPlayerSubsystem* InputSubsystem) const
 {
-	check(InputConfig);
-	check(InputSubsystem);
+    check(InputConfig);
+    check(InputSubsystem);
 
-	ULocalPlayer* LocalPlayer = InputSubsystem->GetLocalPlayer<ULocalPlayer>();
-	check(LocalPlayer);
+    ULocalPlayer* LocalPlayer = InputSubsystem->GetLocalPlayer<ULocalPlayer>();
+    check(LocalPlayer);
 
-	// Add any registered input mappings from the settings!
-	if (UHWSettingsLocal* LocalSettings = UHWSettingsLocal::Get())
-	{
-		// Tell enhanced input about any custom keymappings that the player may have customized
-		for (const TPair<FName, FKey>& Pair : LocalSettings->GetCustomPlayerInputConfig())
-		{
-			if (Pair.Key != NAME_None && Pair.Value.IsValid())
-			{
-				InputSubsystem->AddPlayerMappedKeyInSlot(Pair.Key, Pair.Value);
-			}
-		}
-	}
+    // Add any registered input mappings from the settings!
+    if (UHWSettingsLocal* LocalSettings = UHWSettingsLocal::Get())
+    {
+        const TMap<FName, FKey>& CustomMappings = LocalSettings->GetCustomPlayerInputConfig();
+        if (!CustomMappings.IsEmpty())
+        {
+            CustomInputContext = NewObject<UInputMappingContext>(LocalPlayer, FName("CustomInputMappingContext"));
+
+            for (const TPair<FName, FKey>& Pair : CustomMappings)
+            {
+                if (Pair.Key != NAME_None && Pair.Value.IsValid())
+                {
+                    UInputAction* CustomAction = NewObject<UInputAction>(CustomInputContext, Pair.Key);
+                    CustomAction->ActionDescription = FText::FromName(Pair.Key);
+
+                    CustomInputContext->MapKey(CustomAction, Pair.Value);
+                }
+            }
+
+            FModifyContextOptions Options = {};
+            Options.bIgnoreAllPressedKeysUntilRelease = false;
+            InputSubsystem->AddMappingContext(CustomInputContext, 0, Options);
+        }
+    }
 }
 
 void UHWInputComponent::RemoveInputMappings(const UHWInputConfig* InputConfig, UEnhancedInputLocalPlayerSubsystem* InputSubsystem) const
 {
-	check(InputConfig);
-	check(InputSubsystem);
+    check(InputConfig);
+    check(InputSubsystem);
 
-	ULocalPlayer* LocalPlayer = InputSubsystem->GetLocalPlayer<ULocalPlayer>();
-	check(LocalPlayer);
+    ULocalPlayer* LocalPlayer = InputSubsystem->GetLocalPlayer<ULocalPlayer>();
+    check(LocalPlayer);
 
-	if (UHWSettingsLocal* LocalSettings = UHWSettingsLocal::Get())
-	{
-		// Remove any registered input contexts
-		const TArray<FLoadedMappableConfigPair>& Configs = LocalSettings->GetAllRegisteredInputConfigs();
-		for (const FLoadedMappableConfigPair& Pair : Configs)
-		{
-			InputSubsystem->RemovePlayerMappableConfig(Pair.Config);
-		}
-
-		// Clear any player mapped keys from enhanced input
-		for (const TPair<FName, FKey>& Pair : LocalSettings->GetCustomPlayerInputConfig())
-		{
-			InputSubsystem->RemovePlayerMappedKeyInSlot(Pair.Key);
-		}
-	}
+    if (CustomInputContext)
+    {
+        InputSubsystem->RemoveMappingContext(CustomInputContext);
+        CustomInputContext = nullptr;
+    }
 }
 
 void UHWInputComponent::RemoveBinds(TArray<uint32>& BindHandles)

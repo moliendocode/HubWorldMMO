@@ -7,6 +7,8 @@
 #include "./Player/HWPlayerController.h"
 #include "./Input/HWInputComponent.h"
 #include "./AbilitySystem/HWGameplayTags.h"
+#include "EnhancedInput/Public/PlayerMappableInputConfig.h"
+#include "EnhancedInput/Public/InputMappingContext.h"
 
 AHWGASPlayerCharacter::AHWGASPlayerCharacter()
 {
@@ -59,7 +61,7 @@ void AHWGASPlayerCharacter::InitializePlayerInput(UInputComponent* PlayerInputCo
 	UE_LOG(OWSHubWorldMMO, VeryVerbose, TEXT("AHWGASPlayerCharacter - InitializePlayerInput Started"));
 
 	const FHWGameplayTags& GameplayTags = FHWGameplayTags::Get();
-	
+
 	check(PlayerInputComponent);
 
 	const APlayerController* PC = GetController<APlayerController>();
@@ -70,17 +72,18 @@ void AHWGASPlayerCharacter::InitializePlayerInput(UInputComponent* PlayerInputCo
 
 	InputSubsystem->ClearAllMappings();
 
-	//If there is a valid Input Config
 	if (InputConfig)
 	{
-		// Register any default input configs with the settings so that they will be applied to the player during AddInputMappings
 		for (const FMappableConfigPair& Pair : DefaultInputConfigs)
 		{
 			if (Pair.bShouldActivateAutomatically && Pair.CanBeActivated())
 			{
-				FModifyContextOptions Options = {};
-				Options.bIgnoreAllPressedKeysUntilRelease = false;
-				InputSubsystem->AddPlayerMappableConfig(Pair.Config.LoadSynchronous(), Options);
+				if (UInputMappingContext* MappingContext = Pair.MappingContext.LoadSynchronous())
+				{
+					FModifyContextOptions Options = {};
+					Options.bIgnoreAllPressedKeysUntilRelease = false;
+					InputSubsystem->AddMappingContext(MappingContext, 0, Options);
+				}
 			}
 		}
 
@@ -93,9 +96,7 @@ void AHWGASPlayerCharacter::InitializePlayerInput(UInputComponent* PlayerInputCo
 		HWInputComponent->BindNativeAction(InputConfig, GameplayTags.InputTag_Move, ETriggerEvent::Triggered, this, &ThisClass::Input_Move, /*bLogIfNotFound=*/ false);
 		HWInputComponent->BindNativeAction(InputConfig, GameplayTags.InputTag_Look_Mouse, ETriggerEvent::Triggered, this, &ThisClass::Input_LookMouse, /*bLogIfNotFound=*/ false);
 		HWInputComponent->BindNativeAction(InputConfig, GameplayTags.InputTag_Look_Stick, ETriggerEvent::Triggered, this, &ThisClass::Input_LookStick, /*bLogIfNotFound=*/ false);
-		//HWInputComponent->BindNativeAction(InputConfig, GameplayTags.InputTag_AutoRun, ETriggerEvent::Triggered, this, &ThisClass::Input_AutoRun, /*bLogIfNotFound=*/ false);
 	}
-
 }
 
 void AHWGASPlayerCharacter::AbilitySystemInitialized()

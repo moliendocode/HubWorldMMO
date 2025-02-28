@@ -43,6 +43,9 @@ struct FMappableConfigPair
 	UPROPERTY(EditAnywhere)
 		TSoftObjectPtr<UPlayerMappableInputConfig> Config;
 
+	UPROPERTY(EditAnywhere)
+		TSoftObjectPtr<UInputMappingContext> MappingContext;
+
 	/**
 	 * Container of platform traits that must be set in order for this input to be activated.
 	 *
