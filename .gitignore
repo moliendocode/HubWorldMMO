@@ -83,3 +83,6 @@ Content/MSPresets/*
 !OWSInstanceLauncher/*
 !OWSInstanceLauncher/**
 OWSInstanceLauncher/*.txt
+OWSInstanceLauncher/appsettings.json
+
+Config/DefaultGame.ini

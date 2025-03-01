@@ -51,7 +51,10 @@ void UOWSAPISubsystem::GetJsonObjectFromResponse(FHttpRequestPtr Request, FHttpR
 {
 	if (bWasSuccessful && Response.IsValid())
 	{
-		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
+		FString ResponseContent = Response->GetContentAsString();
+		UE_LOG(OWS, Log, TEXT("%s - Respuesta cruda del servidor: %s"), *CallingMethodName, *ResponseContent);
+
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseContent);
 
 		if (FJsonSerializer::Deserialize(Reader, JsonObject))
 		{
@@ -60,13 +63,14 @@ void UOWSAPISubsystem::GetJsonObjectFromResponse(FHttpRequestPtr Request, FHttpR
 		}
 		else
 		{
-			UE_LOG(OWS, Error, TEXT("%s - Error Deserializing JsonObject!"), *CallingMethodName);
+			UE_LOG(OWS, Error, TEXT("%s - Error Deserializing JsonObject! Contenido: %s"), *CallingMethodName, *ResponseContent);
 			ErrorMsg = CallingMethodName + " - Error Deserializing JsonObject!";
 		}
 	}
 	else
 	{
-		UE_LOG(OWS, Error, TEXT("%s - Response was unsuccessful or invalid!"), *CallingMethodName);
+		FString FailureReason = bWasSuccessful ? "Response invalid" : "Request unsuccessful";
+		UE_LOG(OWS, Error, TEXT("%s - Response was unsuccessful or invalid! Reason: %s"), *CallingMethodName, *FailureReason);
 		ErrorMsg = CallingMethodName + " - Response was unsuccessful or invalid!";
 	}
 }
